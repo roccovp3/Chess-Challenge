@@ -12,7 +12,7 @@ using static MyBot;
 
 public class MyBot : IChessBot
 {
-    int maxDepth = 5;
+    int maxDepth = 6;
     int[] values = { 0, 10, 30, 30, 50, 90, 900 };
 
     public Move Think(Board board, Timer timer)
@@ -47,11 +47,11 @@ public class MyBot : IChessBot
         {
             if (board.IsWhiteToMove == maximizingPlayer)
             {
-                myScore += (int)(Math.Exp(enumeratorPP.Current.Square.Rank) / 22f);
+                myScore += (int)(Math.Exp(enumeratorPP.Current.Square.Rank) / 32f);
             }
             else
             {
-                myScore += (int)(Math.Exp(7 - enumeratorPP.Current.Square.Rank) / 22f);
+                myScore += (int)(Math.Exp(7 - enumeratorPP.Current.Square.Rank) / 32f);
             }
         }
         enumeratorPP = board.GetPieceList(PieceType.Pawn, !maximizingPlayer).GetEnumerator();
@@ -59,11 +59,11 @@ public class MyBot : IChessBot
         {
             if (board.IsWhiteToMove == !maximizingPlayer)
             {
-                myScore += (int)(Math.Exp(enumeratorPP.Current.Square.Rank) / 22f);
+                opScore += (int)(Math.Exp(7 - enumeratorPP.Current.Square.Rank) / 22f);
             }
             else
             {
-                myScore += (int)(Math.Exp(7 - enumeratorPP.Current.Square.Rank) / 22f);
+                opScore += (int)(Math.Exp(enumeratorPP.Current.Square.Rank) / 22f);
             }
         }
 
