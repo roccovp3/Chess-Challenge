@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
@@ -11,7 +12,7 @@ using static MyBot;
 
 public class MyBot : IChessBot
 {
-    int maxDepth = 6;
+    int maxDepth = 5;
     int[] values = { 0, 10, 30, 30, 50, 90, 900 };
 
     public Move Think(Board board, Timer timer)
@@ -39,6 +40,33 @@ public class MyBot : IChessBot
                 opScore += values[(int)enumerator.Current.PieceType];
             }
         }
+
+        // Encourage Passed Pawns
+        IEnumerator<Piece> enumeratorPP = board.GetPieceList(PieceType.Pawn, maximizingPlayer).GetEnumerator();
+        while (enumeratorPP.MoveNext())
+        {
+            if (board.IsWhiteToMove == maximizingPlayer)
+            {
+                myScore += (int)(Math.Exp(enumeratorPP.Current.Square.Rank) / 22f);
+            }
+            else
+            {
+                myScore += (int)(Math.Exp(7 - enumeratorPP.Current.Square.Rank) / 22f);
+            }
+        }
+        enumeratorPP = board.GetPieceList(PieceType.Pawn, !maximizingPlayer).GetEnumerator();
+        while (enumeratorPP.MoveNext())
+        {
+            if (board.IsWhiteToMove == !maximizingPlayer)
+            {
+                myScore += (int)(Math.Exp(enumeratorPP.Current.Square.Rank) / 22f);
+            }
+            else
+            {
+                myScore += (int)(Math.Exp(7 - enumeratorPP.Current.Square.Rank) / 22f);
+            }
+        }
+
         eval = myScore - opScore;
 
         if (board.IsInCheckmate() && (board.IsWhiteToMove == maximizingPlayer))
