@@ -11,45 +11,82 @@ using static MyBot;
 
 public class MyBot : IChessBot
 {
-    public Move Think(Board board, Timer timer)
-    { 
-        int maxDepth = 3;
-        return minimax(board, maxDepth, true, board.IsWhiteToMove).Item2;
+    int maxDepth = 5;
 
+    public Move Think(Board board, Timer timer)
+    {
+        (int, Move) result = minimax(board, maxDepth, board.IsWhiteToMove, board.IsWhiteToMove, -int.MaxValue, int.MaxValue);
+        return result.Item2;
     }
 
-    public int evaluate(Board board, bool maximizingColor)
+    public int evaluate(Board board, bool maximizingColor, bool maximizingPlayer)
     {
         int[] values = { 0, 10, 30, 30, 50, 90, 900 };
+        int myScore = 0;
+        int opScore = 0;
         int eval = 0;
-        if(maximizingColor)
+
+        for (int i = 1; i <= 6; i++)
         {
-            for (int i = 1; i <= 6; i++)
+            IEnumerator<Piece> enumerator = board.GetPieceList((PieceType)i, maximizingPlayer).GetEnumerator();
+            while (enumerator.MoveNext())
             {
-                IEnumerator<Piece> enumerator = board.GetPieceList((PieceType)i, maximizingColor).GetEnumerator();
-                while (enumerator.MoveNext())
-                {
-                    eval += values[(int)enumerator.Current.PieceType];
-                }
-                enumerator = board.GetPieceList((PieceType)i, !maximizingColor).GetEnumerator();
-                while (enumerator.MoveNext())
-                {
-                    eval -= values[(int)enumerator.Current.PieceType];
-                }
+                myScore += values[(int)enumerator.Current.PieceType];
             }
+            enumerator = board.GetPieceList((PieceType)i, !maximizingPlayer).GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                opScore += values[(int)enumerator.Current.PieceType];
+            }
+        }
+        eval = myScore - opScore;
+
+        if (board.IsInCheckmate() && (board.IsWhiteToMove == maximizingPlayer))
+        {
+            eval = -5000;
+        }
+        else if (board.IsInCheckmate() && (board.IsWhiteToMove != maximizingPlayer))
+        {
+            eval = 5000;
+        }
+        else if (board.IsDraw() && eval < 0 && (board.IsWhiteToMove == maximizingPlayer))
+        {
+            eval = 3000;
+        }
+        else if (board.IsDraw() && eval > 0 && (board.IsWhiteToMove != maximizingPlayer))
+        {
+            eval = -3000;
+        }
+        else if (board.IsRepeatedPosition() && eval < 0 && (board.IsWhiteToMove == maximizingPlayer))
+        {
+            eval = 3000;
+        }
+        else if (board.IsRepeatedPosition() && eval > 0 && (board.IsWhiteToMove != maximizingPlayer))
+        {
+            eval = -3000;
+        }
+        if (maximizingPlayer)
+        {
             return eval;
         }
-        return -eval;
+        else
+        {
+            return -eval;
+        }
     }
 
-    public (int, Move) minimax(Board board, int depth, bool maximizingPlayer, bool maximizingColor)
+    public (int, Move) minimax(Board board, int depth, bool maximizingPlayer, bool maximizingColor, int alpha, int beta)
     {
         Move bestMove;
         int value;
         Move[] moves = board.GetLegalMoves();
-        if (depth == 0 && board.GetLegalMoves().Length > 0)
+        if (depth == 0 || board.IsInCheckmate() || board.IsDraw())
         {
-            return (evaluate(board, maximizingColor), moves[0]);
+            if (moves.Length > 0)
+            {
+                return (evaluate(board, maximizingColor, maximizingPlayer), moves[0]);
+            }
+            return (evaluate(board, maximizingColor, maximizingPlayer), Move.NullMove);
         }
         else if (!board.IsInStalemate() && !board.IsDraw() && !board.IsInCheckmate())
         {
@@ -61,13 +98,19 @@ public class MyBot : IChessBot
                 {
                     Move currMove = moves[i];
                     board.MakeMove(currMove);
-                    (int, Move) current = minimax(board, depth - 1, false, maximizingColor);
+                    (int, Move) current = minimax(board, depth - 1, false, maximizingColor, alpha, beta);
+                    if(board.IsInCheckmate())
+                    {
+                        current.Item1 = current.Item1 * depth;
+                    }
                     board.UndoMove(currMove);
                     if (current.Item1 > value)
                     {
                         value = current.Item1;
                         bestMove = currMove;
                     }
+                    alpha = Math.Max(alpha, current.Item1);
+                    if (beta <= alpha) break;
                 }
                 return (value, bestMove);
             }
@@ -79,13 +122,19 @@ public class MyBot : IChessBot
                 {
                     Move currMove = moves[i];
                     board.MakeMove(currMove);
-                    (int, Move) current = minimax(board, depth - 1, true, maximizingColor);
+                    (int, Move) current = minimax(board, depth - 1, true, maximizingColor, alpha, beta);
+                    if (board.IsInCheckmate())
+                    {
+                        current.Item1 = current.Item1 * depth;
+                    }
                     board.UndoMove(currMove);
                     if (current.Item1 < value)
                     {
                         value = current.Item1;
                         bestMove = currMove;
                     }
+                    beta = Math.Min(beta, current.Item1);
+                    if (beta <= alpha) break;
                 }
                 return (value, bestMove);
             }
