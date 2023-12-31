@@ -11,7 +11,8 @@ using static MyBot;
 
 public class MyBot : IChessBot
 {
-    int maxDepth = 5;
+    int maxDepth = 6;
+    int[] values = { 0, 10, 30, 30, 50, 90, 900 };
 
     public Move Think(Board board, Timer timer)
     {
@@ -21,7 +22,6 @@ public class MyBot : IChessBot
 
     public int evaluate(Board board, bool maximizingColor, bool maximizingPlayer)
     {
-        int[] values = { 0, 10, 30, 30, 50, 90, 900 };
         int myScore = 0;
         int opScore = 0;
         int eval = 0;
@@ -80,6 +80,46 @@ public class MyBot : IChessBot
         Move bestMove;
         int value;
         Move[] moves = board.GetLegalMoves();
+        Move[] movesOrdered = new Move[moves.Length];
+        // Move Ordering (MVV-LVA)
+        int k = 0;
+        bool capturesExist = false;
+        for (int l = 0; l < moves.Length; l++)
+        {
+            if (moves[l].IsCapture)
+            {
+                capturesExist = true;
+            }
+        }
+        if (capturesExist)
+        {
+            for (int l = 0; l < moves.Length; l++)
+            {
+                for (int i = 5; i >= 1; i--)
+                {
+                    for (int j = 1; j <= 5; j++)
+                    {
+                        if (moves[l].MovePieceType == (PieceType)j && moves[l].CapturePieceType == (PieceType)i)
+                        {
+                            movesOrdered[k] = moves[l];
+                            moves[l] = Move.NullMove;
+                            k++;
+                        }
+                    }
+                }
+            }
+            for (int l = 0; l < moves.Length; l++)
+            {
+                if (moves[l] != Move.NullMove)
+                {
+                    movesOrdered[k] = moves[l];
+                    k++;
+                }
+            }
+            moves = movesOrdered;
+        }
+        
+        
         if (depth == 0 || board.IsInCheckmate() || board.IsDraw())
         {
             if (moves.Length > 0)
